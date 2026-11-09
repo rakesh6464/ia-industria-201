@@ -72,3 +72,4 @@ if reinicios:
     print("conciliación: no se puede, la estación se reinició mientras escuchabas")
 else:
     print(f"conciliación: fabricadas={fabricadas} recibidas={len(recibidos)} sin_registro={fabricadas - len(recibidos)}")
+# Test

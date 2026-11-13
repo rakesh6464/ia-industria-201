@@ -9,6 +9,7 @@ import json
 
 import joblib
 import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix
 from sklearn.neural_network import MLPClassifier
@@ -34,12 +35,37 @@ print(f"entrenar={len(entrenar)} examen={len(examen)} defectos_en_examen={int(ex
 
 # --- PASO 2: escribir la regla antes de mirar ----------------------------------
 # (pega aquí el bloque del paso 2)
+REGLA = "más defectos encontrados; si empatan, menos falsas alarmas"
+
+def clave(resultado):
+    return (resultado["recall"], -resultado["fpr"])     # Python compara la tupla de izquierda a derecha
+
+print(f"regla de elección: {REGLA}")
 
 # --- PASO 3: los candidatos ----------------------------------------------------
 # (pega aquí el bloque del paso 3)
+candidatos = {
+    
+    "bosque": RandomForestClassifier(n_estimators=200, class_weight="balanced", random_state=0),   # dentro de candidatos
+
+    "logreg": LogisticRegression(class_weight="balanced", max_iter=400),
+    "arbol": DecisionTreeClassifier(max_depth=3, class_weight="balanced", random_state=7),
+    "red": make_pipeline(StandardScaler(), MLPClassifier(hidden_layer_sizes=(64, 32), max_iter=1000, random_state=0)),
+}
+print(f"candidatos: {list(candidatos)}")
 
 # --- PASO 4: examinarlos con la misma vara -------------------------------------
 # (pega aquí el bloque del paso 4)
+resultados = {nombre: examinar(modelo) for nombre, modelo in candidatos.items()}
+print("candidato  encontrados  falsas_alarmas")
+for nombre, r in resultados.items():
+    print(f"{nombre:9s}  {r['encontrados']:5d} de 21  {r['falsas']:6d} de 210")
 
 # --- PASO 5: elegir con la regla y guardar -------------------------------------
 # (pega aquí el bloque del paso 5)
+ganador = max(resultados, key=lambda nombre: clave(resultados[nombre]))
+joblib.dump(candidatos[ganador], "/data/mi_modelo.joblib")
+ficha = {"modelo": ganador, "version": VERSION, "regla": REGLA, **resultados[ganador]}
+with open("/data/mi_modelo.json", "w") as f:
+    json.dump(ficha, f, indent=1)
+print(f"elegido: {ganador} -> mi_modelo.joblib, ficha en mi_modelo.json")
